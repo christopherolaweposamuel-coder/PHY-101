@@ -1,1 +1,168 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHY 101 Twisted CBT</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f1f5fb;color:#172033;margin:0;padding:16px}
+.wrap{max-width:850px;margin:auto}
+header{background:#123b7a;color:white;padding:24px;border-radius:14px}
+.panel,.question{background:white;border:1px solid #dbe3f0;border-radius:12px;padding:16px;margin:14px 0}
+.pill{display:inline-block;background:#eaf1ff;color:#16428b;padding:7px 10px;border-radius:20px;margin:3px;font-weight:bold}
+button{border:0;border-radius:8px;padding:12px 16px;font-weight:bold;cursor:pointer;margin:4px}
+.primary{background:#174b9a;color:white}
+.secondary{background:#e9eef7;color:#19345f}
+.option{display:flex;gap:10px;padding:12px;border:1px solid #dce3ee;border-radius:9px;margin:8px 0;cursor:pointer}
+.option:has(input:checked){background:#edf4ff;border-color:#4779d6}
+input[type=radio]{accent-color:#245bc1}
+#timer{font-size:1.4rem;font-weight:bold}
+.bar{height:8px;background:#e4eaf4;border-radius:20px;overflow:hidden}
+#progress{height:100%;width:0;background:#2864d7}
+.qnum{color:#2454a6;font-weight:bold}
+.question h3{font-size:1.05rem;line-height:1.5}
+.explanation{margin-top:12px;line-height:1.6}
+.correct{border:2px solid #64ad79;background:#f0fff3}
+.wrong{border:2px solid #dc8c88;background:#fff5f4}
+.hidden{display:none}
+.small{color:#536178;line-height:1.5}
+@media print{button,#timerBox,.bar{display:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<h1>PHY 101 Study Group Challenge</h1>
+<p>20 twisted undergraduate CBT questions · 20 marks · 10 minutes</p>
+</header>
+
+<section class="panel">
+<span class="pill">20 QUESTIONS</span>
+<span class="pill">20 MARKS</span>
+<span class="pill">10 MINUTES</span>
+<p class="small">Choose one answer per question. Your score and explanations appear only after you submit all answers or the timer expires.</p>
+<div id="timerBox">Time remaining: <span id="timer">10:00</span></div>
+<div class="bar"><div id="progress"></div></div>
+<p id="progressText" class="small">0 of 20 answered</p>
+<button class="primary" id="startBtn">Start Test</button>
+<button class="secondary" id="submitBtn" disabled>Submit All Answers</button>
+</section>
+
+<div id="questions"></div>
+<section class="panel hidden" id="results"></section>
+</main>
+
+<script>
+const qs=[
+["A student walks 10 m east and then 10 m west to his starting point. What are his displacement and distance, respectively?",["0 m and 20 m","20 m and 0 m","10 m and 20 m","0 m and 0 m"],0,"Distance is the total path: 10 + 10 = 20 m. Displacement is zero because the student returns to the starting point."],
+["A position-time graph is a straight line sloping downward. What does this indicate?",["The object is slowing down","The object has constant negative velocity","The object is at rest","The object has positive acceleration"],1,"A straight line has constant slope. A negative slope on a position-time graph means constant negative velocity."],
+["An object moves at constant velocity in a straight line. Which statement must be true?",["Its acceleration is positive","Its resultant force is zero","Its momentum is zero","No force acts on it"],1,"Constant velocity means zero acceleration, so the resultant force is zero. Individual forces may still balance."],
+["A car's speed doubles while its mass stays unchanged. Its kinetic energy becomes:",["Twice the original","Three times the original","Four times the original","Half the original"],2,"KE = 1/2 mv². Doubling speed multiplies kinetic energy by 2² = 4."],
+["Two objects of different masses are dropped from the same height in a vacuum. Which reaches the ground first?",["The heavier object","The lighter object","Both at the same time","It depends only on their shapes"],2,"In a vacuum, freely falling objects have the same gravitational acceleration."],
+["A body moves around a circular track at constant speed. Which quantity continuously changes?",["Mass","Speed","Direction of velocity","Time"],2,"Velocity includes direction. In circular motion, direction changes continuously even when speed stays constant."],
+["A force of 12 N acts on a 3 kg object. What is its acceleration?",["36 m/s²","4 m/s²","0.25 m/s²","9 m/s²"],1,"Using F = ma, a = F/m = 12/3 = 4 m/s²."],
+["A 2 kg object moving at 6 m/s comes to rest. What is the magnitude of its change in momentum?",["3 kg m/s","8 kg m/s","12 kg m/s","0 kg m/s"],2,"Initial momentum = 2 × 6 = 12 kg m/s. Final momentum is zero, so the change has magnitude 12 kg m/s."],
+["A horizontal line on a velocity-time graph lies above the time axis. What does it mean?",["The object is at rest","The object has constant positive velocity","The object has constant positive acceleration","The speed is increasing"],1,"A horizontal velocity-time line means constant velocity. Above the axis means positive velocity."],
+["A velocity-time graph has a straight line sloping upward. Its gradient represents:",["Displacement","Distance","Acceleration","Momentum"],2,"The gradient is change in velocity divided by time, which is acceleration."],
+["A stone is thrown vertically upward. At its highest point, ignoring air resistance:",["Velocity and acceleration are both zero","Velocity is zero but acceleration is downward","Velocity is upward and acceleration is zero","Velocity is downward and acceleration is upward"],1,"Instantaneous velocity is zero at the top, but gravitational acceleration still acts downward."],
+["A machine does 600 J of work in 20 s. Its average power is:",["30 W","120 W","580 W","12000 W"],0,"Power = work/time = 600/20 = 30 W."],
+["A 5 kg object is lifted through 2 m. Take g = 10 m/s². Its gain in gravitational potential energy is:",["10 J","25 J","50 J","100 J"],3,"Gain in potential energy = mgh = 5 × 10 × 2 = 100 J."],
+["Two equal forces of 8 N act in opposite directions along the same straight line. Their resultant is:",["16 N","8 N","4 N","0 N"],3,"Equal forces in opposite directions cancel, giving a zero resultant."],
+["A body has mass 4 kg on Earth. On the Moon, which statement is correct?",["Its mass decreases","Mass stays the same but weight decreases","Mass and weight stay the same","Mass increases but weight decreases"],1,"Mass remains constant. Weight = mg, and gravitational acceleration is lower on the Moon."],
+["A wave has frequency 50 Hz and wavelength 4 m. Its speed is:",["12.5 m/s","46 m/s","54 m/s","200 m/s"],3,"Wave speed v = fλ = 50 × 4 = 200 m/s."],
+["A sound wave travels from air into water. Which property remains unchanged?",["Speed","Wavelength","Frequency","Amplitude in every case"],2,"Frequency is determined by the source and remains unchanged at a boundary. Speed and wavelength can change."],
+["Two resistors of 4 Ω and 6 Ω are connected in series. Total resistance is:",["2 Ω","2.4 Ω","10 Ω","24 Ω"],2,"Resistances in series add: 4 + 6 = 10 Ω."],
+["Two identical 6 Ω resistors are connected in parallel. Their equivalent resistance is:",["12 Ω","6 Ω","3 Ω","1 Ω"],2,"Two identical resistors in parallel have equivalent resistance R/2 = 6/2 = 3 Ω."],
+["A charged capacitor is disconnected from its battery. Plate separation increases while charge remains constant. What happens to capacitance?",["It increases","It decreases","It stays constant","It becomes infinite"],1,"For parallel plates, C = εA/d. Increasing separation d decreases capacitance."]
+];
+
+const letters=["A","B","C","D"];
+let started=false,done=false,remaining=600,interval=null;
+const questionsEl=document.getElementById("questions");
+const startBtn=document.getElementById("startBtn");
+const submitBtn=document.getElementById("submitBtn");
+
+qs.forEach((q,i)=>{
+ const section=document.createElement("section");
+ section.className="question";
+ section.id="q"+i;
+ section.innerHTML=`<div class="qnum">QUESTION ${i+1} OF 20</div><h3>${q[0]}</h3>`+
+ q[1].map((option,j)=>`<label class="option"><input type="radio" name="q${i}" value="${j}" disabled><span><b>${letters[j]}.</b> ${option}</span></label>`).join("");
+ questionsEl.appendChild(section);
+});
+
+function updateProgress(){
+ let n=qs.filter((q,i)=>document.querySelector(`input[name="q${i}"]:checked`)).length;
+ document.getElementById("progress").style.width=(n/20*100)+"%";
+ document.getElementById("progressText").textContent=`${n} of 20 answered`;
+}
+
+document.addEventListener("change",e=>{
+ if(e.target.matches('input[type="radio"]'))updateProgress();
+});
+
+function start(){
+ if(started||done)return;
+ started=true;
+ startBtn.disabled=true;
+ document.querySelectorAll('input[type="radio"]').forEach(x=>x.disabled=false);
+ submitBtn.disabled=false;
+
+ interval=setInterval(()=>{
+  remaining--;
+  document.getElementById("timer").textContent=
+   `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,"0")}`;
+  if(remaining<=0)finish(true);
+ },1000);
+}
+
+function finish(timeout=false){
+ if(done)return;
+ done=true;
+ clearInterval(interval);
+ document.querySelectorAll('input[type="radio"]').forEach(x=>x.disabled=true);
+ submitBtn.disabled=true;
+ startBtn.disabled=true;
+
+ let score=0,answered=0;
+
+ qs.forEach((q,i)=>{
+  const chosen=document.querySelector(`input[name="q${i}"]:checked`);
+  const section=document.getElementById("q"+i);
+  const chosenIndex=chosen?Number(chosen.value):-1;
+
+  if(chosen)answered++;
+  if(chosenIndex===q[2])score++;
+
+  section.classList.add(chosenIndex===q[2]?"correct":"wrong");
+
+  const detail=document.createElement("div");
+  detail.className="explanation";
+  detail.innerHTML=`<b>${chosenIndex===q[2]?"Correct!":"Correct answer: "+letters[q[2]]}</b><br>${q[3]}`;
+  section.appendChild(detail);
+ });
+
+ const results=document.getElementById("results");
+ results.classList.remove("hidden");
+ results.innerHTML=`<h2>${timeout?"Time is up!":"Test submitted!"}</h2>
+ <p><strong>Your score: ${score}/20 (${Math.round(score/20*100)}%)</strong></p>
+ <p>You answered ${answered} of 20 questions. Review the explanations under each question.</p>
+ <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+ <button class="secondary" onclick="location.reload()">Retake Test</button>`;
+ results.scrollIntoView({behavior:"smooth"});
+}
+
+startBtn.addEventListener("click",start);
+submitBtn.addEventListener("click",()=>{
+ if(!started)return;
+ if(qs.some((q,i)=>!document.querySelector(`input[name="q${i}"]:checked`))){
+  if(!confirm("Some questions are unanswered. Submit anyway?"))return;
+ }
+ finish(false);
+});
+</script>
+</body>
+</html>
+
